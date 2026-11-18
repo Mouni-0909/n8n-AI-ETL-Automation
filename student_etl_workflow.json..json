@@ -1,0 +1,248 @@
+{
+  "name": "ETL AI automation",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "b5645047-004d-465c-9033-629a4fa10dea",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "1P6HAUGv6hq15qlc2bqlz-QCCB7VAEUWN",
+          "mode": "list",
+          "cachedResultName": "student_enrollment_raw.csv",
+          "cachedResultUrl": "https://drive.google.com/file/d/1P6HAUGv6hq15qlc2bqlz-QCCB7VAEUWN/view?usp=drivesdk"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        0
+      ],
+      "id": "6f24a3fd-581a-4d72-9ffc-5ebac3b8567c",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "pquMihEjQF9etIbv",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        288,
+        0
+      ],
+      "id": "b8b4925d-f9b5-4274-8a9c-e88b5eeb1b08",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n{{ `You are a student enrollment data cleaning assistant.\n\nClean the following student records.\n\nRules:\n1. Remove duplicate records based on Student_ID.\n2. Trim extra spaces from text fields.\n3. Convert student names and city names to title case.\n4. Convert email addresses to lowercase.\n5. Keep missing or invalid email and phone values empty.\n6. Do not invent missing information.\n7. Preserve Student_ID, Name, Email, Phone, Course, Fee_Paid, City and Enrolled_Date.\n8. Return only a valid JSON array of cleaned student objects.\n9. Do not add explanations or markdown.\n\nStudent records:\n${JSON.stringify($input.all().map(item => item.json))}` }}\n",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        512,
+        0
+      ],
+      "id": "141b07b5-26b5-4742-b7b4-dfbd2b2063b8",
+      "name": "Basic LLM Chain",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-5-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        448,
+        208
+      ],
+      "id": "415c0edf-bad4-49dc-9b86-65d4fc753dc0",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "sRxAmvHbJzwHafca",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst aiOutput = $input.first().json.text;\n\nconst students = JSON.parse(aiOutput);\n\nreturn students.map(student => ({ json: student }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        0
+      ],
+      "id": "6b308aad-ad88-41ff-8a10-f2a60771018a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.2,
+      "position": [
+        1104,
+        0
+      ],
+      "id": "55f429e7-51af-42d8-916d-bb62aac75c66",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "name": "student_enrollment_cleaned.csv",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1keA8KCA9FbZs-zHV30iZUR-zpbI_q3Xm",
+          "mode": "list",
+          "cachedResultName": "Student_ETL",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1keA8KCA9FbZs-zHV30iZUR-zpbI_q3Xm"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "596e5e8d-3d6d-4083-beff-c084e3b45624",
+      "name": "Upload file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "pquMihEjQF9etIbv",
+          "name": "Google Drive account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e0b302ea-745c-4988-af47-1da8508acdfc",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b06b1b78aaad79ecd272abe9175a58b77f1ca709a5cac7f8abd04a38af87e827"
+  },
+  "nodeGroups": [],
+  "id": "dV7B7linvDvgsh3Y",
+  "tags": []
+}
